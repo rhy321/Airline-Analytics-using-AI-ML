@@ -8,11 +8,6 @@ __pycache__/
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
-# Data files (don’t upload huge datasets)
-data/
-*.csv
-*.zip
-
 # Virtual environments
 venv/
 env/
