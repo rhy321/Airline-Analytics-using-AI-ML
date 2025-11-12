@@ -31,17 +31,17 @@ warnings.filterwarnings("ignore")
 # -------------------------
 # 1) Load data
 # -------------------------
-data_path = Path("cleaned_flights.csv")
+data_path = Path("Airline-Analytics-using-AI-ML\data\cleaned_flights.csv")
 if not data_path.exists():
     raise FileNotFoundError(f"{data_path} not found - save your cleaned file at this path.")
 
 df = pd.read_csv(data_path)
-
+print(df.columns)
 # -------------------------
 # 2) Select features + target
 # -------------------------
 # Edit these as needed for your dataset
-FEATURES = ['AIRLINE', 'MONTH', 'DAY_OF_WEEK', 'DISTANCE', 'SCHEDULED_DEPARTURE']
+FEATURES = ['AIRLINE_CODE', 'MONTH', 'DAY_OF_WEEK', 'DISTANCE', 'SCHEDULED_DEPARTURE']
 TARGET = 'DELAYED'   # binary 0/1
 
 # Basic sanity checks
@@ -77,7 +77,7 @@ numeric_transformer = Pipeline(steps=[
 # If high-cardinality (many airlines), consider OrdinalEncoder or target encoding instead
 categorical_transformer = Pipeline(steps=[
     ("imputer", SimpleImputer(strategy="most_frequent")),
-    ("onehot", OneHotEncoder(handle_unknown="ignore", sparse=False))
+    ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
 ])
 
 preprocessor = ColumnTransformer(transformers=[
@@ -245,7 +245,7 @@ example_rows = X_test.head(5)
 probs = loaded.predict_proba(example_rows)[:, 1]
 preds = loaded.predict(example_rows)
 print("\nExample predictions on 5 rows:")
-display(example_rows.assign(PRED=preds, PROB_DELAY=probs))
+print(example_rows.assign(PRED=preds, PROB_DELAY=probs))
 
 # -------------------------
 # END
