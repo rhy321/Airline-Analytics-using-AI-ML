@@ -31,7 +31,7 @@ warnings.filterwarnings("ignore")
 # -------------------------
 # 1) Load data
 # -------------------------
-data_path = Path("Airline-Analytics-using-AI-ML\data\cleaned_flights.csv")
+data_path = Path("data/cleaned_flights.csv")
 if not data_path.exists():
     raise FileNotFoundError(f"{data_path} not found - save your cleaned file at this path.")
 

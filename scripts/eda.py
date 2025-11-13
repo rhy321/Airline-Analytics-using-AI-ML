@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-flights = pd.read_csv('cleaned_flights.csv')
+flights = pd.read_csv('data/cleaned_flights.csv')
 
 print(flights.shape)
 print(flights.head())

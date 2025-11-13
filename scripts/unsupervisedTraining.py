@@ -15,7 +15,7 @@ import pickle   # 👈 added for saving models
 # ---------------------------------------------------------------
 # 1. Load dataset
 # ---------------------------------------------------------------
-df = pd.read_csv("Airline-Analytics-using-AI-ML\data\cleaned_flights.csv")  # 👈 replace with your file path
+df = pd.read_csv("data/cleaned_flights.csv")  # 👈 replace with your file path
 print("Original Shape:", df.shape)
 
 # ---------------------------------------------------------------
