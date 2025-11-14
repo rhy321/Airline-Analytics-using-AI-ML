@@ -1,5 +1,5 @@
 # ===============================================================
-# Run Both Models (Supervised + Unsupervised)
+# running.py — Unified Supervised + Unsupervised Prediction Script
 # ===============================================================
 
 import pandas as pd
@@ -7,93 +7,106 @@ import joblib
 import pickle
 
 # ---------------------------------------------------------------
-# 1️⃣ Load Supervised Model (Joblib)
+# 1. Load Supervised Model (joblib)
 # ---------------------------------------------------------------
-supervised_model_path = "phase3_best_pipeline.pkl"
 print("Loading supervised model (joblib)...")
-
 try:
-    sup_model = joblib.load(supervised_model_path)
+    supervised_model = joblib.load("phase3_best_pipeline.pkl")
     print("✅ Supervised model loaded successfully.\n")
 except Exception as e:
-    print("❌ Error loading supervised model:", e)
-    sup_model = None
+    print(f"❌ Error loading supervised model: {e}\n")
+    supervised_model = None
 
 # ---------------------------------------------------------------
-# 2️⃣ Load Unsupervised Model (Pickle)
+# 2. Load Unsupervised Model (pickle)
 # ---------------------------------------------------------------
-
-unsupervised_model_path = "unsupervised_model_bundle.pkl"   # your saved pickle
 print("Loading unsupervised model (pickle)...")
-
 try:
-    with open(unsupervised_model_path, "rb") as f:
-        unsup_bundle = pickle.load(f)
-    print("✅ Unsupervised data loaded successfully.\n")
-
-    # Extract models if present in the dict
-    unsup_model = unsup_bundle.get("kmeans")
-    scaler = unsup_bundle.get("scaler")
-    pca = unsup_bundle.get("pca")
-
-    if unsup_model is None:
-        raise ValueError("KMeans model not found inside pickle.")
+    with open("unsupervised_model_bundle.pkl", "rb") as f:
+        unsupervised_model = pickle.load(f)
+    print("✅ Unsupervised model loaded successfully.\n")
 except Exception as e:
-    print("❌ Error loading unsupervised model:", e)
-    unsup_model = None
-
+    print(f"❌ Error loading unsupervised model: {e}\n")
+    unsupervised_model = None
 
 # ---------------------------------------------------------------
-# 3️⃣ Create Sample Input for Prediction
+# 3. Sample Input Data (example)
 # ---------------------------------------------------------------
-sample_input = pd.DataFrame([
-    {"AIRLINE_CODE": "DL", "MONTH": 7, "DAY_OF_WEEK": 5, "DISTANCE": 980, "SCHEDULED_DEPARTURE": 830},
-    {"AIRLINE_CODE": "AA", "MONTH": 12, "DAY_OF_WEEK": 1, "DISTANCE": 450, "SCHEDULED_DEPARTURE": 2200}
-])
-
+sample_data = pd.DataFrame({
+    "AIRLINE_CODE": ["DL", "AA"],
+    "MONTH": [7, 12],
+    "DAY_OF_WEEK": [5, 1],
+    "DISTANCE": [980, 450],
+    "SCHEDULED_DEPARTURE": [830, 2200]
+})
 print("🧩 Sample input data:")
-print(sample_input)
+print(sample_data, "\n")
 
 # ---------------------------------------------------------------
-# 4️⃣ Predict using Supervised Model
+# 4. Supervised Model Predictions (Fixed)
 # ---------------------------------------------------------------
+supervised_results = sample_data.copy()
 
-if sup_model:
-    print("\n🔹 Supervised Model Predictions:")
+if supervised_model is not None:
     try:
-        preds = sup_model.predict(sample_input)
-        if hasattr(sup_model, "predict_proba"):
-            probs = sup_model.predict_proba(sample_input)[:, 1]
-            sample_input["Delay_Prob"] = probs
-        sample_input["Predicted_Delay"] = preds
-        print(sample_input[["AIRLINE_CODE", "MONTH", "DAY_OF_WEEK", "Predicted_Delay", "Delay_Prob"]])
+        # ✅ Ensure only the features expected by the supervised model are passed
+        expected_features = ["AIRLINE_CODE", "MONTH", "DAY_OF_WEEK", "DISTANCE", "SCHEDULED_DEPARTURE"]
+        X_supervised = supervised_results[expected_features]
+
+        preds = supervised_model.predict(X_supervised)
+
+        if hasattr(supervised_model, "predict_proba"):
+            probs = supervised_model.predict_proba(X_supervised)[:, 1]
+            supervised_results["Delay_Prob"] = probs
+        else:
+            supervised_results["Delay_Prob"] = None
+
+        supervised_results["Predicted_Delay"] = preds
+
+        print("🔹 Supervised Model Predictions:")
+        print(supervised_results[["AIRLINE_CODE", "MONTH", "DAY_OF_WEEK", "Predicted_Delay", "Delay_Prob"]], "\n")
+
     except Exception as e:
-        print("⚠️ Error predicting with supervised model:", e)
+        print(f"⚠️ Error predicting with supervised model: {e}\n")
+        supervised_results["Predicted_Delay"] = None
+        supervised_results["Delay_Prob"] = None
 else:
-    print("⚠️ Supervised model not loaded, skipping prediction.")
+    supervised_results["Predicted_Delay"] = None
+    supervised_results["Delay_Prob"] = None
+
 
 # ---------------------------------------------------------------
-# 5️⃣ Predict/Cluster using Unsupervised Model
+# 5. Unsupervised Model Clustering
 # ---------------------------------------------------------------
-
-if unsup_model:
-    print("\n🔹 Unsupervised Model Clustering:")
+if unsupervised_model is not None:
     try:
-        # Extract numeric features
-        numeric_data = sample_input.select_dtypes(include="number")
+        # Ensure same input features used during training
+        X_unsupervised = sample_data[["AIRLINE_CODE", "MONTH", "DAY_OF_WEEK", "DISTANCE", "SCHEDULED_DEPARTURE"]]
 
-        # Use same preprocessing as training (you can reapply scaler + PCA here)
-        cluster_labels = unsup_model.predict(numeric_data)
-        sample_input["Cluster_Label"] = cluster_labels
-        print(sample_input[["AIRLINE_CODE", "MONTH", "DAY_OF_WEEK", "Cluster_Label"]])
+        # Predict cluster labels using full pipeline
+        cluster_labels = unsupervised_model.named_steps["kmeans"].predict(
+            unsupervised_model.named_steps["pca"].transform(
+                unsupervised_model.named_steps["preprocessor"].transform(X_unsupervised)
+            )
+        )
+
+        supervised_results["Cluster_Label"] = cluster_labels
+
+        print("🔹 Unsupervised Model Clustering:")
+        print(supervised_results[["AIRLINE_CODE", "MONTH", "DAY_OF_WEEK", "Cluster_Label"]], "\n")
+
     except Exception as e:
-        print("⚠️ Error predicting with unsupervised model:", e)
+        print(f"⚠️ Error predicting with unsupervised model: {e}\n")
+        supervised_results["Cluster_Label"] = None
 else:
-    print("⚠️ Unsupervised model not loaded, skipping clustering.")
-
+    supervised_results["Cluster_Label"] = None
 
 # ---------------------------------------------------------------
-# 6️⃣ Final Output
+# 6. Final Combined Output
 # ---------------------------------------------------------------
-print("\n✅ Final Combined Results:")
-print(sample_input)
+print("✅ Final Combined Results:")
+print(supervised_results, "\n")
+
+# Optionally, save results
+supervised_results.to_csv("final_predictions_output.csv", index=False)
+print("📁 Saved combined results to final_predictions_output.csv")
